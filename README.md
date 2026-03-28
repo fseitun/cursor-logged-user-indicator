@@ -2,6 +2,10 @@
 
 **Cursor IDE only.** Shows the cached Cursor account email (and plan hints) in the status bar by reading `User/globalStorage/state.vscdb` in read-only mode. Does not use the network or read access/refresh tokens.
 
+## Privacy
+
+All data stays on your machine. The extension **does not send** account email, plan metadata, or database paths over the network. It only reads a few keys from your local Cursor `state.vscdb` (via a short-lived Python process) and displays them in the editor UI. Anyone who can see your screen can also see the status bar and tooltips—avoid sharing your desktop if that is a concern.
+
 ## Why this exists
 
 Cursor subscription and team membership are tied to the Cursor account, not to VS Code’s GitHub/Microsoft sign-in. This extension surfaces `cursorAuth/cachedEmail` and related keys from local storage so you always see which account is active.
@@ -12,10 +16,10 @@ Cursor subscription and team membership are tied to the Cursor account, not to V
 
 ## Settings
 
-| Setting                           | Purpose                                                                                  |
-| --------------------------------- | ---------------------------------------------------------------------------------------- |
-| `cursorLoggedUser.flaggedDomains` | Domains (after `@`) that trigger a **red** status bar (e.g. your employer).              |
-| `cursorLoggedUser.allowedEmails`  | If non-empty, **red** bar when the current email is not in this list (case-insensitive). |
+| Setting                           | Purpose                                                                                                                                                                                                                                                                                                    |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cursorLoggedUser.flaggedDomains` | Domains (after `@`) that trigger a **red** status bar. Matching is exact or **subdomain**: flag `corp.com` matches `user@corp.com` and `user@x.corp.com`, but also matches any domain whose name **ends with** `.<flag>` (e.g. `evilcorp.com` matches flag `corp.com`). Use precise flags if that matters. |
+| `cursorLoggedUser.allowedEmails`  | If non-empty, **red** bar when the current email is not in this list (case-insensitive).                                                                                                                                                                                                                   |
 
 ## Risks
 

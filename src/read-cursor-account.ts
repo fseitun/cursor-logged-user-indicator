@@ -1,4 +1,4 @@
-import { spawnSync } from "child_process";
+import { spawn } from "child_process";
 import * as path from "path";
 import { KEYS } from "./cursor-state-keys";
 
@@ -9,6 +9,8 @@ export interface CursorAccountSnapshot {
   signUpType: string | null;
 }
 
+const MAX_BUFFER = 1024 * 1024;
+
 function pythonBinaries(): string[] {
   if (process.platform === "win32") {
     return ["python", "python3"];
@@ -16,35 +18,89 @@ function pythonBinaries(): string[] {
   return ["python3", "python"];
 }
 
+type RunOutcome =
+  | { kind: "ENOENT" }
+  | { kind: "done"; code: number | null; stdout: string };
+
+function runPythonRead(
+  bin: string,
+  script: string,
+  dbPath: string,
+): Promise<RunOutcome> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(bin, [script, dbPath], { windowsHide: true });
+    let stdout = "";
+    let settled = false;
+
+    const finish = (outcome: RunOutcome): void => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      resolve(outcome);
+    };
+
+    child.stdout?.setEncoding("utf8");
+    child.stdout?.on("data", (chunk: string) => {
+      stdout += chunk;
+      if (stdout.length > MAX_BUFFER) {
+        child.kill("SIGTERM");
+      }
+    });
+
+    child.on("error", (err: NodeJS.ErrnoException) => {
+      if (err.code === "ENOENT") {
+        finish({ kind: "ENOENT" });
+      } else if (!settled) {
+        settled = true;
+        reject(err);
+      }
+    });
+
+    child.on("close", (code) => {
+      if (settled) {
+        return;
+      }
+      let out = stdout;
+      let exitCode = code;
+      if (out.length > MAX_BUFFER) {
+        out = "";
+        exitCode = -1;
+      }
+      finish({ kind: "done", code: exitCode, stdout: out });
+    });
+  });
+}
+
 /**
  * Uses bundled Python + stdlib sqlite3 so we never load the whole DB into the extension host
  * (state.vscdb can be gigabytes). Requires Python 3 on PATH.
  */
-export function readCursorAccountFromStateDb(
+export async function readCursorAccountFromStateDb(
   dbPath: string,
   extensionRoot: string,
-): CursorAccountSnapshot | null {
+): Promise<CursorAccountSnapshot | null> {
   const script = path.join(
     extensionRoot,
     "scripts",
     "read_cursor_itemtable.py",
   );
-  let lastCode: number | null = null;
   for (const bin of pythonBinaries()) {
-    const res = spawnSync(bin, [script, dbPath], {
-      encoding: "utf-8",
-      maxBuffer: 1024 * 1024,
-      windowsHide: true,
-    });
-    lastCode = res.status ?? 1;
-    if (res.error && (res.error as NodeJS.ErrnoException).code === "ENOENT") {
+    let outcome: RunOutcome;
+    try {
+      outcome = await runPythonRead(bin, script, dbPath);
+    } catch {
+      return null;
+    }
+    if (outcome.kind === "ENOENT") {
       continue;
     }
-    if (res.status !== 0 || res.stdout === undefined || res.stdout === "") {
+    const { code, stdout } = outcome;
+    if (code !== 0 || stdout === "") {
       return null;
     }
     try {
-      const raw = JSON.parse(res.stdout.trim()) as Record<
+      const raw = JSON.parse(stdout.trim()) as Record<
         string,
         string | null | undefined
       >;
@@ -58,6 +114,5 @@ export function readCursorAccountFromStateDb(
       return null;
     }
   }
-  void lastCode;
   return null;
 }

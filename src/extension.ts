@@ -5,7 +5,10 @@ import {
   stateDbExists,
 } from "./cursor-global-storage";
 import { evaluateAccountPolicy } from "./policy";
-import { readCursorAccountFromStateDb } from "./read-cursor-account";
+import {
+  type CursorAccountSnapshot,
+  readCursorAccountFromStateDb,
+} from "./read-cursor-account";
 
 const SECTION = "cursorLoggedUser";
 
@@ -27,7 +30,7 @@ function debounce(fn: () => void, ms: number): () => void {
 }
 
 function formatTooltip(
-  snapshot: NonNullable<ReturnType<typeof readCursorAccountFromStateDb>>,
+  snapshot: CursorAccountSnapshot,
   dbPath: string,
   policy: ReturnType<typeof evaluateAccountPolicy>,
 ): string {
@@ -62,6 +65,7 @@ function formatTooltip(
 }
 
 let extensionRoot = "";
+let statusBarUpdateGeneration = 0;
 
 export function activate(context: vscode.ExtensionContext): void {
   extensionRoot = context.extensionPath;
@@ -72,7 +76,7 @@ export function activate(context: vscode.ExtensionContext): void {
   status.name = "Cursor Logged User";
   context.subscriptions.push(status);
 
-  const refresh = () => updateStatusBar(status);
+  const refresh = () => void updateStatusBar(status);
 
   if (!isCursorApp()) {
     status.text = "$(info) Not Cursor";
@@ -114,10 +118,12 @@ export function activate(context: vscode.ExtensionContext): void {
   refresh();
 }
 
-function updateStatusBar(status: vscode.StatusBarItem): void {
+async function updateStatusBar(status: vscode.StatusBarItem): Promise<void> {
   if (!isCursorApp()) {
     return;
   }
+
+  const gen = ++statusBarUpdateGeneration;
 
   const config = vscode.workspace.getConfiguration(SECTION);
   const flaggedDomains: string[] = config.get("flaggedDomains") ?? [];
@@ -125,6 +131,9 @@ function updateStatusBar(status: vscode.StatusBarItem): void {
 
   const dbPath = getCursorStateVscdbPath();
   if (!stateDbExists(dbPath)) {
+    if (gen !== statusBarUpdateGeneration) {
+      return;
+    }
     status.text = "$(account) Cursor: no state DB";
     status.tooltip = `Expected: ${dbPath}\n(File missing — open Cursor and sign in once.)`;
     status.backgroundColor = new vscode.ThemeColor(
@@ -135,7 +144,10 @@ function updateStatusBar(status: vscode.StatusBarItem): void {
     return;
   }
 
-  const snapshot = readCursorAccountFromStateDb(dbPath, extensionRoot);
+  const snapshot = await readCursorAccountFromStateDb(dbPath, extensionRoot);
+  if (gen !== statusBarUpdateGeneration) {
+    return;
+  }
   if (snapshot === null) {
     status.text = "$(account) Cursor: read error";
     status.tooltip = [

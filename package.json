@@ -1,9 +1,9 @@
 {
   "name": "cursor-logged-user-indicator",
   "displayName": "Cursor Logged User Indicator",
-  "description": "Shows your Cursor account in the status bar (Cursor IDE only). Reads cached local session data.",
+  "description": "Shows your Cursor account in the status bar (Cursor IDE only). Reads cached local session data only; nothing is sent over the network.",
   "author": "Federico Seitún",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "fseitun",
   "repository": {
     "type": "git",
@@ -35,7 +35,7 @@
             "type": "string"
           },
           "default": [],
-          "description": "If the signed-in email address matches any of these domains (substring after @), the status bar shows a warning style."
+          "description": "If the signed-in email address matches any of these domains (substring after @), the status bar shows a warning style. Matches exact domain or subdomains (e.g. flag corp.com matches user@x.corp.com). Also matches any domain that ends with .<flag> (e.g. evilcorp.com matches corp.com); list precise domains if that is a problem."
         },
         "cursorLoggedUser.allowedEmails": {
           "type": "array",
@@ -52,7 +52,7 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "package": "vsce package --allow-missing-repository --no-dependencies",
+    "package": "npx @vscode/vsce package --no-dependencies",
     "test": "node dist/test/parse-account.test.js"
   },
   "devDependencies": {
