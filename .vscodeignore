@@ -1,4 +1,8 @@
 .vscode/**
+.env
+.env.local
+.env.*
+!.env.example
 src/**
 tsconfig.json
 .gitignore

@@ -3,7 +3,7 @@
   "displayName": "Cursor Logged User Indicator",
   "description": "Shows your Cursor account in the status bar (Cursor IDE only). Reads cached local session data only; nothing is sent over the network.",
   "author": "Federico Seitún",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "fseitun",
   "repository": {
     "type": "git",
@@ -53,12 +53,14 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "package": "npx @vscode/vsce package --no-dependencies",
+    "publish:openvsx": "node scripts/publish-openvsx.cjs",
     "test": "node dist/test/parse-account.test.js"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.0.0",
+    "dotenv": "^16.4.5",
     "typescript": "^5.3.3"
   }
 }
