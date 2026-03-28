@@ -1,0 +1,64 @@
+{
+  "name": "cursor-logged-user-indicator",
+  "displayName": "Cursor Logged User Indicator",
+  "description": "Shows your Cursor account in the status bar (Cursor IDE only). Reads cached local session data.",
+  "author": "Federico Seitún",
+  "version": "0.1.0",
+  "publisher": "fseitun",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fseitun/cursor-logged-user-indicator"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cursorLoggedUser.refresh",
+        "title": "Cursor Logged User: Refresh"
+      }
+    ],
+    "configuration": {
+      "title": "Cursor Logged User",
+      "properties": {
+        "cursorLoggedUser.flaggedDomains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "If the signed-in email address matches any of these domains (substring after @), the status bar shows a warning style."
+        },
+        "cursorLoggedUser.allowedEmails": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "If non-empty, warn when the current Cursor email is not exactly one of these addresses (case-insensitive)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package --allow-missing-repository --no-dependencies",
+    "test": "node dist/test/parse-account.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.0.0",
+    "typescript": "^5.3.3"
+  }
+}
