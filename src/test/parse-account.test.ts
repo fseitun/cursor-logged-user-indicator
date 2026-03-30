@@ -12,31 +12,21 @@ function run(name: string, fn: () => void): void {
 }
 
 run("allowed list empty does not warn when email present", () => {
-  const r = evaluateAccountPolicy("a@b.com", [], []);
+  const r = evaluateAccountPolicy("a@b.com", []);
   assert.strictEqual(r.level, "ok");
 });
 
 run("allowed list requires match", () => {
-  const r = evaluateAccountPolicy("a@b.com", [], ["x@y.com"]);
+  const r = evaluateAccountPolicy("a@b.com", ["x@y.com"]);
   assert.strictEqual(r.level, "error");
 });
 
 run("allowed list case insensitive", () => {
-  const r = evaluateAccountPolicy("A@B.com", [], ["a@b.com"]);
+  const r = evaluateAccountPolicy("A@B.com", ["a@b.com"]);
   assert.strictEqual(r.level, "ok");
 });
 
-run("flagged domain match", () => {
-  const r = evaluateAccountPolicy("u@corp.com", ["corp.com"], []);
-  assert.strictEqual(r.level, "error");
-});
-
-run("subdomain of flagged domain", () => {
-  const r = evaluateAccountPolicy("u@x.corp.com", ["corp.com"], []);
-  assert.strictEqual(r.level, "error");
-});
-
 run("no email is warning level", () => {
-  const r = evaluateAccountPolicy(null, [], []);
+  const r = evaluateAccountPolicy(null, []);
   assert.strictEqual(r.level, "warning");
 });

@@ -9,6 +9,7 @@ import {
   type CursorAccountSnapshot,
   readCursorAccountFromStateDb,
 } from "./read-cursor-account";
+import { resolveAllowedEmails } from "./resolve-allowed-emails";
 
 const SECTION = "cursorLoggedUser";
 
@@ -29,15 +30,34 @@ function debounce(fn: () => void, ms: number): () => void {
   };
 }
 
+function formatAllowListLine(
+  sourceHint: "settings" | "expectedByFolder" | "none",
+  matchedFolderKey?: string,
+): string {
+  if (sourceHint === "settings") {
+    return "Allow list: merged cursorLoggedUser.allowedEmails (User / Workspace).";
+  }
+  if (sourceHint === "expectedByFolder" && matchedFolderKey) {
+    return `Allow list: cursorLoggedUser.expectedByFolder (matched: ${matchedFolderKey}).`;
+  }
+  if (sourceHint === "expectedByFolder") {
+    return "Allow list: cursorLoggedUser.expectedByFolder.";
+  }
+  return "Allow list: none (no restriction unless you set allowedEmails or expectedByFolder).";
+}
+
 function formatTooltip(
   snapshot: CursorAccountSnapshot,
   dbPath: string,
   policy: ReturnType<typeof evaluateAccountPolicy>,
+  sourceHint: "settings" | "expectedByFolder" | "none",
+  matchedFolderKey?: string,
 ): string {
   const lines = [
     "Cursor account (from local state.vscdb, read-only).",
     "",
     `Database: ${dbPath}`,
+    formatAllowListLine(sourceHint, matchedFolderKey),
   ];
   if (snapshot) {
     lines.push("", `Email: ${snapshot.email ?? "(none)"}`);
@@ -106,6 +126,10 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
+    vscode.workspace.onDidChangeWorkspaceFolders(() => refresh()),
+  );
+
+  context.subscriptions.push(
     vscode.window.onDidChangeWindowState((s) => s.focused && refresh()),
   );
 
@@ -126,8 +150,21 @@ async function updateStatusBar(status: vscode.StatusBarItem): Promise<void> {
   const gen = ++statusBarUpdateGeneration;
 
   const config = vscode.workspace.getConfiguration(SECTION);
-  const flaggedDomains: string[] = config.get("flaggedDomains") ?? [];
-  const allowedEmails: string[] = config.get("allowedEmails") ?? [];
+  const mergedAllowed: string[] = config.get("allowedEmails") ?? [];
+  const expectedByFolder =
+    config.get<Record<string, { allowedEmails?: string[] }>>(
+      "expectedByFolder",
+    );
+  const highlightOk = config.get<boolean>("highlightMatchingAccount") ?? false;
+
+  const folder = vscode.workspace.workspaceFolders?.[0];
+  const folderPath = folder?.uri.fsPath;
+
+  const resolved = resolveAllowedEmails(
+    mergedAllowed,
+    expectedByFolder,
+    folderPath,
+  );
 
   const dbPath = getCursorStateVscdbPath();
   if (!stateDbExists(dbPath)) {
@@ -168,11 +205,17 @@ async function updateStatusBar(status: vscode.StatusBarItem): Promise<void> {
   }
 
   const email = snapshot.email?.trim() || null;
-  const policy = evaluateAccountPolicy(email, flaggedDomains, allowedEmails);
+  const policy = evaluateAccountPolicy(email, resolved.allowedEmails);
 
   const shortEmail = email ?? "not signed in";
   status.text = `$(account) ${shortEmail}`;
-  status.tooltip = formatTooltip(snapshot, dbPath, policy);
+  status.tooltip = formatTooltip(
+    snapshot,
+    dbPath,
+    policy,
+    resolved.sourceHint,
+    resolved.matchedFolderKey,
+  );
 
   if (policy.level === "error") {
     status.backgroundColor = new vscode.ThemeColor(
@@ -184,6 +227,13 @@ async function updateStatusBar(status: vscode.StatusBarItem): Promise<void> {
       "statusBarItem.warningBackground",
     );
     status.color = new vscode.ThemeColor("statusBarItem.warningForeground");
+  } else if (highlightOk) {
+    status.backgroundColor = new vscode.ThemeColor(
+      "cursorLoggedUser.statusBarOkBackground",
+    );
+    status.color = new vscode.ThemeColor(
+      "cursorLoggedUser.statusBarOkForeground",
+    );
   } else {
     status.backgroundColor = undefined;
     status.color = undefined;
