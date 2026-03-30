@@ -208,7 +208,10 @@ async function updateStatusBar(status: vscode.StatusBarItem): Promise<void> {
   const policy = evaluateAccountPolicy(email, resolved.allowedEmails);
 
   const shortEmail = email ?? "not signed in";
-  status.text = `$(account) ${shortEmail}`;
+  const showOkCue = highlightOk && policy.level === "ok";
+  status.text = showOkCue
+    ? `$(check) $(account) ${shortEmail}`
+    : `$(account) ${shortEmail}`;
   status.tooltip = formatTooltip(
     snapshot,
     dbPath,
@@ -228,9 +231,7 @@ async function updateStatusBar(status: vscode.StatusBarItem): Promise<void> {
     );
     status.color = new vscode.ThemeColor("statusBarItem.warningForeground");
   } else if (highlightOk) {
-    status.backgroundColor = new vscode.ThemeColor(
-      "cursorLoggedUser.statusBarOkBackground",
-    );
+    status.backgroundColor = undefined;
     status.color = new vscode.ThemeColor(
       "cursorLoggedUser.statusBarOkForeground",
     );

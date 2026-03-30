@@ -16,17 +16,17 @@ Cursor subscription and team membership are tied to the Cursor account, not to V
 
 ## Settings
 
-| Setting                                     | Purpose                                                                                                                                                                                                                                                                                                               |
-| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cursorLoggedUser.allowedEmails`            | If **non-empty** (after trimming entries), the status bar uses **error** styling when the current email is not in the list (case-insensitive). Values are merged from **User** and **Workspace** the usual VS Code way (e.g. `.vscode/settings.json`).                                                                |
-| `cursorLoggedUser.expectedByFolder`         | Map of **absolute** folder paths → `{ "allowedEmails": string[] }`. Used only when merged `allowedEmails` is **empty**. The **longest** path prefix that matches the **first** workspace folder wins. Lets you keep one User `settings.json` with different expected accounts for `~/code/work` vs `~/code/personal`. |
-| `cursorLoggedUser.highlightMatchingAccount` | If `true`, when the email satisfies the allow list the status bar uses **OK** colors (`cursorLoggedUser.statusBarOkBackground` / `statusBarOkForeground`). Default `false`.                                                                                                                                           |
+| Setting                                     | Purpose                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cursorLoggedUser.allowedEmails`            | If **non-empty** (after trimming entries), the status bar uses **error** styling when the current email is not in the list (case-insensitive). Values are merged from **User** and **Workspace** the usual VS Code way (e.g. `.vscode/settings.json`).                                                                                                                                       |
+| `cursorLoggedUser.expectedByFolder`         | Map of **absolute** folder paths → `{ "allowedEmails": string[] }`. Used only when merged `allowedEmails` is **empty**. The **longest** path prefix that matches the **first** workspace folder wins. Lets you keep one User `settings.json` with different expected accounts for `~/code/work` vs `~/code/personal`.                                                                        |
+| `cursorLoggedUser.highlightMatchingAccount` | If `true`, when the email satisfies the allow list the status item shows a **check** icon and **OK** foreground color (`cursorLoggedUser.statusBarOkForeground`). The status bar **background** cannot be tinted for this case—VS Code only applies custom backgrounds for error/warning status items ([vscode#152053](https://github.com/microsoft/vscode/issues/152053)). Default `false`. |
 
 **Precedence:** merged `allowedEmails` first; if that list is empty, `expectedByFolder` is used for the open folder’s path. If there is no allow list, any signed-in email is treated as OK (no red bar for “wrong account”).
 
 **Multi-root workspaces:** only the **first** root folder is used for `expectedByFolder` matching.
 
-**Theming:** Override OK colors in `settings.json` via `workbench.colorCustomizations`, for example `"cursorLoggedUser.statusBarOkBackground": "#2e7d32"`.
+**Theming:** Override the OK highlight foreground in `settings.json` via `workbench.colorCustomizations`, for example `"cursorLoggedUser.statusBarOkForeground": "#89d185"`. There is no separate OK **background** key for the status item; platform limitation, not this extension.
 
 ### Breaking change (v0.5.0)
 
@@ -36,7 +36,7 @@ Cursor subscription and team membership are tied to the Cursor account, not to V
 
 - **Error (red):** email present but not in the allow list.
 - **Warning (yellow):** no cached email (signed out or storage empty), missing state DB, or read error.
-- **OK (green):** email matches the allow list and `highlightMatchingAccount` is `true`.
+- **OK (green foreground + check icon):** email matches the allow list and `highlightMatchingAccount` is `true` (background stays default; see [vscode#152053](https://github.com/microsoft/vscode/issues/152053)).
 - **Default:** email matches and highlight is off, or no allow list is configured.
 
 ## Risks
