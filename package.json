@@ -3,7 +3,7 @@
   "displayName": "Cursor Logged User Indicator",
   "description": "Shows your Cursor account in the status bar (Cursor IDE only). Reads cached local session data only; nothing is sent over the network.",
   "author": "Federico Seitún",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publisher": "fseitun",
   "license": "MIT",
   "homepage": "https://github.com/fseitun/cursor-logged-user-indicator#readme",
@@ -20,6 +20,7 @@
     "type": "git",
     "url": "https://github.com/fseitun/cursor-logged-user-indicator"
   },
+  "icon": "images/icon.png",
   "engines": {
     "vscode": "^1.85.0"
   },
